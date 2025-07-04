@@ -1,0 +1,171 @@
+<!-- admin_panel.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel - IP Tracker</title>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 10px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      box-shadow: 0 0 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      background-color: #007BFF;
+      color: white;
+    }
+    button {
+      padding: 5px 8px;
+      font-size: 12px;
+      margin: 2px;
+      border: none;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    .edit-btn { background-color: #ffc107; color: #000; }
+    .delete-btn { background-color: #dc3545; color: #fff; }
+    .save-btn { background-color: #28a745; color: #fff; }
+    .cancel-btn { background-color: #6c757d; color: #fff; }
+  </style>
+</head>
+<body>
+
+  <h1>📊 Admin Panel - IP Tracker</h1>
+  <input type="text" id="searchInput" placeholder="🔍 Search IP, Country, City, etc...">
+
+  <table>
+    <thead>
+      <tr>
+        <th>IP</th>
+        <th>Country</th>
+        <th>Region</th>
+        <th>City</th>
+        <th>Postal</th>
+        <th>ISP</th>
+        <th>Lat</th>
+        <th>Long</th>
+        <th>Time</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="dataBody"></tbody>
+  </table>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBuTzIg-rYAnnRK6o7WOyoh0ylY7-5CwLg",
+      authDomain: "ip-track-abdb1.firebaseapp.com",
+      databaseURL: "https://ip-track-abdb1-default-rtdb.firebaseio.com/",
+      projectId: "ip-track-abdb1",
+      storageBucket: "ip-track-abdb1.appspot.com",
+      messagingSenderId: "311555011892",
+      appId: "1:311555011892:web:935ae2cf458efdfd6de161"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    function loadData() {
+      db.ref("ipData").on("value", snapshot => {
+        const data = snapshot.val();
+        const tbody = document.getElementById("dataBody");
+        tbody.innerHTML = "";
+        for (let id in data) {
+          const d = data[id];
+          const row = document.createElement("tr");
+          row.setAttribute("data-id", id);
+          row.innerHTML = `
+            <td contenteditable="false">${d.ip || ""}</td>
+            <td contenteditable="false">${d.country || ""}</td>
+            <td contenteditable="false">${d.region || ""}</td>
+            <td contenteditable="false">${d.city || ""}</td>
+            <td contenteditable="false">${d.postal || ""}</td>
+            <td contenteditable="false">${d.org || ""}</td>
+            <td contenteditable="false">${d.latitude || ""}</td>
+            <td contenteditable="false">${d.longitude || ""}</td>
+            <td contenteditable="false">${d.time || ""}</td>
+            <td>
+              <button class="edit-btn">Edit</button>
+              <button class="delete-btn">Delete</button>
+            </td>`;
+          tbody.appendChild(row);
+        }
+      });
+    }
+
+    loadData();
+
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const val = this.value.toLowerCase();
+      document.querySelectorAll("#dataBody tr").forEach(row => {
+        row.style.display = row.innerText.toLowerCase().includes(val) ? "" : "none";
+      });
+    });
+
+    document.getElementById("dataBody").addEventListener("click", function (e) {
+      const row = e.target.closest("tr");
+      const id = row.getAttribute("data-id");
+      const tds = row.querySelectorAll("td");
+
+      if (e.target.classList.contains("edit-btn")) {
+        tds.forEach((td, i) => { if (i < 9) td.contentEditable = "true"; });
+        e.target.textContent = "Save";
+        e.target.className = "save-btn";
+        const cancelBtn = document.createElement("button");
+        cancelBtn.textContent = "Cancel";
+        cancelBtn.className = "cancel-btn";
+        e.target.parentNode.appendChild(cancelBtn);
+      } else if (e.target.classList.contains("save-btn")) {
+        const updated = {
+          ip: tds[0].innerText,
+          country: tds[1].innerText,
+          region: tds[2].innerText,
+          city: tds[3].innerText,
+          postal: tds[4].innerText,
+          org: tds[5].innerText,
+          latitude: tds[6].innerText,
+          longitude: tds[7].innerText,
+          time: tds[8].innerText
+        };
+        db.ref("ipData/" + id).set(updated);
+        tds.forEach((td, i) => { if (i < 9) td.contentEditable = "false"; });
+        e.target.textContent = "Edit";
+        e.target.className = "edit-btn";
+        const cancelBtn = e.target.parentNode.querySelector(".cancel-btn");
+        if (cancelBtn) cancelBtn.remove();
+      } else if (e.target.classList.contains("cancel-btn")) {
+        loadData();
+      } else if (e.target.classList.contains("delete-btn")) {
+        if (confirm("Delete this record?")) {
+          db.ref("ipData/" + id).remove();
+        }
+      }
+    });
+  </script>
+</body>
+</html>
